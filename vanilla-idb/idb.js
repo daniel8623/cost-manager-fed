@@ -14,7 +14,6 @@
  * Exchange rates are fetched using the Fetch API from a configurable URL.
  * The URL is stored in localStorage and can be changed via the UI.
  *
- * Developed by two 3rd-year Computer Science students.
  */
 
 (function () {
