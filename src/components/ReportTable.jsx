@@ -1,3 +1,15 @@
+/**
+ * ReportTable.jsx
+ * --------------
+ * Renders the “Monthly Report” screen.
+ *
+ * Notes (team):
+ * - This component is presentation + user input only (year/month/currency selectors).
+ * - It does NOT query IndexedDB directly; App.jsx passes the already-built `report`.
+ * - The report object structure matches the assignment’s required shape:
+ *   { year, month, costs: [...], total: { currency, total } }
+ */
+
 import React from "react";
 import {
     Alert,
@@ -16,7 +28,9 @@ import {
 } from "@mui/material";
 
 function MonthSelector({ month, setMonth }) {
+    // Simple month selector (1..12) to avoid free-text month input mistakes.
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
     return (
         <TextField
             label="Month"
@@ -26,7 +40,9 @@ function MonthSelector({ month, setMonth }) {
             sx={{ minWidth: 140 }}
         >
             {months.map((m) => (
-                <MenuItem key={m} value={m}>{m}</MenuItem>
+                <MenuItem key={m} value={m}>
+                    {m}
+                </MenuItem>
             ))}
         </TextField>
     );
@@ -51,6 +67,7 @@ export default function ReportTable({
                     Monthly Report
                 </Typography>
 
+                {/* Filters are controlled from App.jsx so Report + Charts stay in sync */}
                 <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
                     <TextField
                         label="Year"
@@ -59,20 +76,26 @@ export default function ReportTable({
                         type="number"
                         sx={{ minWidth: 140 }}
                     />
+
                     <MonthSelector month={month} setMonth={setMonth} />
+
                     <TextField
                         label="Report Currency"
                         value={currency}
+                        // Currency choice triggers rebuilding the report (conversion is done in idb layer)
                         onChange={(e) => setCurrency(e.target.value)}
                         select
                         sx={{ minWidth: 180 }}
                     >
                         {currencies.map((c) => (
-                            <MenuItem key={c} value={c}>{c}</MenuItem>
+                            <MenuItem key={c} value={c}>
+                                {c}
+                            </MenuItem>
                         ))}
                     </TextField>
                 </Box>
 
+                {/* Loading state while IndexedDB + rates fetch + conversion happen */}
                 {loading && (
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                         <CircularProgress size={18} />
@@ -80,10 +103,17 @@ export default function ReportTable({
                     </Box>
                 )}
 
-                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                {/* Any runtime errors from DB/rates conversion bubble up here */}
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
 
+                {/* Main report table */}
                 {!loading && report && (
                     <>
+                        {/* Total is computed in the selected currency (without changing stored currencies in DB) */}
                         <Typography sx={{ mb: 1, fontWeight: 800 }}>
                             Total ({report.total.currency}): {report.total.total}
                         </Typography>
@@ -98,10 +128,14 @@ export default function ReportTable({
                                     <TableCell sx={{ fontWeight: 900 }}>Description</TableCell>
                                 </TableRow>
                             </TableHead>
+
                             <TableBody>
                                 {report.costs.map((c, idx) => (
                                     <TableRow key={idx}>
+                                        {/* Assignment example uses Date:{day:...}, so we read it safely */}
                                         <TableCell>{c?.Date?.day ?? "-"}</TableCell>
+
+                                        {/* These fields are the “original” stored values per cost item */}
                                         <TableCell>{c.sum}</TableCell>
                                         <TableCell>{c.currency}</TableCell>
                                         <TableCell>{c.category}</TableCell>
@@ -113,6 +147,7 @@ export default function ReportTable({
                     </>
                 )}
 
+                {/* Friendly empty-state when month/year has no matching records */}
                 {!loading && !error && report && report.costs.length === 0 && (
                     <Alert severity="info">No costs found for this month.</Alert>
                 )}
