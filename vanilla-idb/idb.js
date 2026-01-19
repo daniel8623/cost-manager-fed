@@ -23,7 +23,7 @@
         db: null
     };
 
-    var DEFAULT_RATES_URL = "http://localhost:3000/rates";
+    var DEFAULT_RATES_URL = "/rates";
 
     function getRatesUrl() {
         try {
